@@ -1,9 +1,15 @@
-# Spring Boot-Shiro-Vue
-提供一套基于SpringBoot-shiro-vue的权限管理思路.
+# 架构说明
 
-前后端都加以控制,做到按钮/接口级别的权限
+基于SpringBoot+Shiro+Vue搭建的服务
+
+# 功能说明
+
+1. 支持基本权限管理, 用于访问数据库指定表, 实现超限数据的展示、转移和导出.
+
+2. 前后端都加以控制, 做到按钮/接口级别的权限
 
 # DEMO
+
 [测试地址](https://g.heeexy.com)
 
 admin/123456 管理员身份登录,可以新增用户,角色.
@@ -13,6 +19,7 @@ admin/123456 管理员身份登录,可以新增用户,角色.
 控制菜单是否显示,新增/删除按钮是否显示
 
 # 更新记录
+
 v2.0.0  2021.05.09
 1. 支持一个用户多个角色
 2. 使用token作为登录凭证,不使用session,避免跨域问题
@@ -22,7 +29,7 @@ v2.0.0  2021.05.09
 
 ### 核心
 
- 	每个登录用户拥有各自的N条权限,比如 文章:查看/编辑/发布/删除
+每个登录用户拥有各自的N条权限,比如 文章:查看/编辑/发布/删除
 
 ### 后端
 
@@ -48,9 +55,9 @@ v2.0.0  2021.05.09
 
 ### 前端
 
-采用了[vueAdmin-template](https://github.com/PanJiaChen/vueAdmin-template) , [ElementUI](https://github.com/ElemeFE/element) , 权限设计思路也是参考了 vueAdmin 的动态路由的设计.
+采用[vueAdmin-template](https://github.com/PanJiaChen/vueAdmin-template) , [ElementUI](https://github.com/ElemeFE/element) , 权限设计思路也是参考了 vueAdmin 的动态路由的设计.
 
-后端负责了接口的安全性,而前端之所以要做权限处理,最主要的目的就是**隐藏掉不具有权限的菜单(路由)和按钮**.
+后端负责接口的安全性,而前端之所以要做权限处理,最主要的目的就是**隐藏掉不具有权限的菜单(路由)和按钮**.
 
 登录系统后,后端返回此用户的权限信息,比如 
 ```json
@@ -80,14 +87,28 @@ v2.0.0  2021.05.09
 
 如果某用户拥有表格中前五条权限,就可以查出他就拥有article和user两个菜单,至于页面内是否显示(新增)(修改)按钮,就根据他的permissionList来判断.
 
-## 具体实现
-有了思路,就可以根据各自的业务进行实现,本项目在此进行了简单的实现,后端代码在back文件夹,前端代码在vue文件夹.前端启动只需
-```
-npm install
-npm run dev
+## 编译运行
+
+后端代码位于back文件夹, 前端代码在vue文件夹.
+
+* 前端项目启动  
+
 ```
 
-后端就是常规的shiro配置,前端代码如果看不明白,可以参考[前端权限代码说明](./explain-frontend.md) 
+# 安装编译工具
+npm install -g windows-build-tools
+
+# 项目编译
+cd vue
+npm install
+
+# 项目运行
+npm run dev
+
+```
+
+后端权限采用shiro配置,前端具体参考[前端权限代码说明](./explain-frontend.md) 
 
 ## 分配权限页面效果
+
 ![分配权限页面](https://img.heeexy.com/role_permission.png)
