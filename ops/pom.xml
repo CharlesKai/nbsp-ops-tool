@@ -19,11 +19,14 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <java.version>1.8</java.version>
+        <lombok.version>1.18.20</lombok.version>
+        <spring-boot.version>2.3.10.RELEASE</spring-boot.version>
         <fastjson.version>1.2.83</fastjson.version>
         <mybatis-starter.version>2.1.4</mybatis-starter.version>
         <caffeine.version>2.9.1</caffeine.version>
-        <lombok.version>1.18.20</lombok.version>
-        <spring-data-redis.version>1.8.8.RELEASE</spring-data-redis.version>
+        <spring-data-redis.version>2.3.9.RELEASE</spring-data-redis.version>
+        <lettuce-core.version>5.3.6.RELEASE</lettuce-core.version>
+        <commons-pool2.version>2.7.0</commons-pool2.version>
     </properties>
     <dependencies>
         <dependency>
@@ -44,11 +47,22 @@
             <artifactId>mysql-connector-java</artifactId>
             <scope>runtime</scope>
         </dependency>
-        <!--        <dependency>-->
-        <!--            <groupId>org.springframework.data</groupId>-->
-        <!--            <artifactId>spring-data-redis</artifactId>-->
-        <!--            <version>${spring-data-redis.version}</version>-->
-        <!--        </dependency>-->
+        <!--   redis相关依赖     -->
+        <dependency>
+            <groupId>org.springframework.data</groupId>
+            <artifactId>spring-data-redis</artifactId>
+            <version>${spring-data-redis.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.lettuce</groupId>
+            <artifactId>lettuce-core</artifactId>
+            <version>${lettuce-core.version}</version> <!-- 请根据需要调整版本号 -->
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+            <version>${commons-pool2.version}</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/com.alibaba/fastjson -->
         <dependency>
             <groupId>com.alibaba</groupId>
@@ -93,6 +107,7 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>${spring-boot.version}</version>
                 <configuration>
                     <executable>true</executable>
                 </configuration>
