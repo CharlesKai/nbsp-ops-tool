@@ -6,13 +6,13 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * @author heeexy
+ * @author charlesYan
  * @description: 访问此接口需要的权限
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RequiresPermissions {
-    String[] value();
+  String[] value();
 
-    Logical logical() default Logical.AND;
+  Logical logical() default Logical.AND;
 }
