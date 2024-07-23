@@ -34,10 +34,10 @@ public class UpdatebleRedisConnectionFactory implements RedisConnectionFactory {
 
   // @PostConstruct
   public void init() {
-    LettuceConnectionFactory jedisConnectionFactory =
+    LettuceConnectionFactory lettuceConnectionFactory =
         this.createLettuceConnectionFactory(properties);
-    redisConnectionFactory = applyProperties(properties, jedisConnectionFactory);
-    jedisConnectionFactory.afterPropertiesSet();
+    redisConnectionFactory = applyProperties(properties, lettuceConnectionFactory);
+    lettuceConnectionFactory.afterPropertiesSet();
   }
 
   public void update() {
