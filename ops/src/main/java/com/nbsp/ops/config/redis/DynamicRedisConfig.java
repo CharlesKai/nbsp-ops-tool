@@ -26,6 +26,10 @@ public class DynamicRedisConfig {
       String host, int port, String password, int database) {
     LettuceConnectionFactory connectionFactory =
         createLettuceConnectionFactory(host, port, password, database);
+    // 关闭共享链接
+    connectionFactory.setShareNativeConnection(false);
+    connectionFactory.afterPropertiesSet(); // 必须初始化实例
+
     RedisTemplate<String, String> template = new RedisTemplate<>();
     template.setConnectionFactory(connectionFactory);
 

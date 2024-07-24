@@ -1,5 +1,8 @@
 package com.nbsp.ops.util;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -9,6 +12,8 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.connection.DataType;
+import org.springframework.data.redis.connection.RedisConnection;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.Cursor;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ScanOptions;
@@ -949,7 +954,7 @@ public class RedisUtil {
    * @param key
    * @return
    */
-  public Set<String> setMembers(String key) {
+  public Set<String> sMembers(String key) {
     return redisTemplate.opsForSet().members(key);
   }
 
@@ -1305,7 +1310,90 @@ public class RedisUtil {
     return redisTemplate.opsForZSet().scan(key, options);
   }
 
-  /** -------------------锁相关操作--------------------- */
+  /** ------------------通用相关操作-------------------------------- */
+
+  /**
+   * 获取指定数据库的键数量
+   *
+   * @param database 数据库索引
+   * @return 键的数量
+   */
+  public long countKeys(int database) {
+    try (RedisConnection connection = redisTemplate.getConnectionFactory().getConnection()) {
+      if (database >= 0) {
+        connection.select(database);
+      }
+      return connection.dbSize();
+    }
+  }
+
+  /**
+   * 迭代哈希表中的键
+   *
+   * @param options
+   * @return
+   */
+  public List<String> scan(ScanOptions options) {
+    List<String> keys = new ArrayList<>();
+    redisTemplate.execute(
+        (RedisConnection connection) -> {
+          try (Cursor<byte[]> cursor = connection.scan(options)) {
+            while (cursor.hasNext()) {
+              keys.add(new String(cursor.next(), StandardCharsets.UTF_8));
+            }
+          } catch (IOException e) {
+            log.error("Scan redis keys error: ", e);
+          }
+          return keys;
+        });
+    return keys;
+  }
+
+  /**
+   * 迭代哈希表中的键
+   *
+   * @param options
+   * @return
+   */
+  public List<String> scanAndClose(ScanOptions options) throws IOException {
+    List<String> keys = new ArrayList<>();
+    RedisConnectionFactory connectionFactory = redisTemplate.getConnectionFactory();
+    try (RedisConnection connection = connectionFactory.getConnection()) {
+      try (Cursor<byte[]> cursor = connection.scan(options)) {
+        while (cursor.hasNext()) {
+          keys.add(new String(cursor.next(), StandardCharsets.UTF_8));
+        }
+      }
+      return keys;
+    }
+  }
+
+  /**
+   * 获取全类型value
+   *
+   * @param key
+   * @return java.lang.Object
+   */
+  public Object getValueByKey(String key) {
+    String type = type(key).code();
+    switch (type) {
+      case "string":
+        return get(key);
+      case "list":
+        return lRange(key, 0, -1);
+      case "set":
+        return sMembers(key);
+      case "zset":
+        return zRange(key, 0, -1);
+      case "hash":
+        return hGetAll(key);
+      default:
+        log.warn("The type of key {} is unknown", key);
+        return null;
+    }
+  }
+
+  /** -------------------锁相关操作--------------------------------- */
   private static boolean tryResolveLock(
       RedisTemplate<String, String> redisTemplate, final String key, final int expiredTime) {
     String value = redisTemplate.opsForValue().get(key);
@@ -1405,8 +1493,8 @@ public class RedisUtil {
   /**
    * * 锁的关键代码
    *
-   * @author liujinliang5
    * @param <R>
+   * @author liujinliang
    */
   public interface CriticalSection<R> {
 

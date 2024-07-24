@@ -4,6 +4,8 @@ import com.alibaba.fastjson.JSONObject;
 import com.nbsp.ops.config.redis.DynamicRedisConfig;
 import com.nbsp.ops.util.CommonUtil;
 import com.nbsp.ops.util.RedisUtil;
+import com.nbsp.ops.util.StringTools;
+import com.nbsp.ops.util.constants.ErrorEnum;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -34,24 +36,6 @@ public class RedisService {
   @Autowired private DynamicRedisConfig redisConfig;
 
   /**
-   * 数据库列表
-   *
-   * @param jsonObject
-   * @return com.alibaba.fastjson.JSONObject
-   */
-  public JSONObject listDatabase(JSONObject jsonObject) {
-    CommonUtil.fillPageParam(jsonObject);
-    RedisTemplate<String, String> redisTemplate =
-        redisConfig.createRedisTemplate(
-            jsonObject.getString("host"),
-            jsonObject.getIntValue("port"),
-            jsonObject.getString("password"),
-            -1);
-    RedisUtil redisUtil = new RedisUtil(redisTemplate);
-    return null;
-  }
-
-  /**
    * 数据列表
    *
    * @param jsonObject
@@ -65,11 +49,21 @@ public class RedisService {
     int port = jsonObject.getIntValue("port");
     String password = jsonObject.getString("password");
     int database = jsonObject.getIntValue("database");
+    String keyword = jsonObject.getString("keyword");
 
     RedisTemplate<String, String> redisTemplate =
         redisConfig.createRedisTemplate(host, port, password, database);
-    long count = countKeys(redisTemplate, database);
-    Map<String, Object> dataMap = listKeysWithValues(redisTemplate, database, offSet, limit);
+    RedisUtil redisUtil = new RedisUtil(redisTemplate);
+    long count = redisUtil.countKeys(-1);
+    Map<String, Object> dataMap;
+    try {
+      dataMap =
+          listKeysWithValues(
+              redisUtil, StringTools.isNullOrEmpty(keyword) ? "*" : keyword, offSet, limit);
+    } catch (IOException e) {
+      log.error("Scan redis key of database {} from {} to {} error: ", database, offSet, limit, e);
+      return CommonUtil.errorJson(ErrorEnum.E_400);
+    }
     // 将Map转换为List<JSONObject>
     List<JSONObject> list =
         dataMap.entrySet().stream()
@@ -81,14 +75,92 @@ public class RedisService {
                   return item;
                 })
             .collect(Collectors.toList());
-
     return CommonUtil.successPage(jsonObject, list, Math.toIntExact(count));
+  }
+
+  private Map<String, Object> listKeysWithValues(
+      RedisUtil redisUtil, String pattern, int start, int size) throws IOException {
+    // 待缓存连接池，是否需要destroy
+    ScanOptions options = ScanOptions.scanOptions().match(pattern).count(size).build();
+    List<String> keys = redisUtil.scanAndClose(options);
+    int end = Math.min(start + size, keys.size());
+    // 获取当前页的键
+    List<String> pagedKeys = keys.subList(start, end);
+    // 批量获取value保证原序
+    return pagedKeys.stream()
+        .collect(
+            Collectors.toMap(
+                key -> key,
+                key -> redisUtil.getValueByKey(key),
+                (existing, replacement) -> existing,
+                LinkedHashMap::new));
   }
 
   /**
    * 分页查询redis库下键值列表
    *
-   * <p>scan方式
+   * @param redisTemplate redis客户端
+   * @param database 数据库号
+   * @param pattern 匹配规则
+   * @param start 起始位置
+   * @param size 数量
+   * @return java.util.Map<java.lang.String, java.lang.Object>
+   */
+  private Map<String, Object> listKeysWithValues(
+      RedisTemplate<String, String> redisTemplate,
+      int database,
+      String pattern,
+      int start,
+      int size) {
+    ScanOptions options = ScanOptions.scanOptions().match(pattern).count(size).build();
+    RedisConnection connection = redisTemplate.getConnectionFactory().getConnection();
+    RedisUtil redisUtil = new RedisUtil(redisTemplate);
+    try (Cursor<byte[]> cursor = connection.scan(options)) {
+      List<String> keys = new ArrayList<>();
+      cursor.forEachRemaining(key -> keys.add(new String(key)));
+
+      int end = Math.min(start + size, keys.size());
+
+      if (start >= keys.size()) {
+        return Collections.emptyMap();
+      }
+
+      List<String> pageKeys = keys.subList(start, end);
+      List<String> values = redisUtil.multiGet(pageKeys);
+
+      return pageKeys.stream()
+          .collect(Collectors.toMap(key -> key, key -> values.get(pageKeys.indexOf(key))));
+    } catch (IOException e) {
+      log.error("Scan Redis keys of database {} error: ", database, e);
+    } finally {
+      connection.close();
+    }
+    return Collections.emptyMap();
+  }
+
+  /**
+   * 全量查询redis库下所有键值列表
+   *
+   * @param redisTemplate
+   * @return java.util.Map<java.lang.String, java.lang.Object>
+   */
+  private Map<String, Object> listAllKeysWithValues(RedisTemplate<String, String> redisTemplate) {
+    RedisUtil redisUtil = new RedisUtil(redisTemplate);
+    Set<String> keys = redisUtil.keys("*");
+    Map<String, Object> result = new LinkedHashMap<>();
+    if (keys != null) {
+      for (String key : keys) {
+        Object value = redisUtil.getValueByKey(key);
+        result.put(key, value);
+      }
+    }
+    return result;
+  }
+
+  /**
+   * 分页查询redis库下键值列表
+   *
+   * <p>RedisConnection方式
    *
    * @param redisTemplate
    * @param database
@@ -96,12 +168,12 @@ public class RedisService {
    * @param size
    * @return java.util.Map<java.lang.String, java.lang.Object>
    */
+  @Deprecated
   private Map<String, Object> listKeysWithValues(
       RedisTemplate<String, String> redisTemplate, int database, int start, int size) {
     // 待缓存连接池，是否需要destroy
     RedisConnectionFactory connectionFactory = redisTemplate.getConnectionFactory();
     RedisConnection connection = connectionFactory.getConnection();
-    connection.select(database);
     ScanOptions options = ScanOptions.scanOptions().count(size).build();
     Map<String, Object> result = new LinkedHashMap<>();
     int index = 0;
@@ -124,103 +196,8 @@ public class RedisService {
     return result;
   }
 
-  /**
-   * 分页查询redis库下键值列表
-   *
-   * @param redisTemplate redis客户端
-   * @param database 数据库号
-   * @param pattern 匹配规则
-   * @param start 起始位置
-   * @param size 数量
-   * @return java.util.Map<java.lang.String, java.lang.Object>
-   */
-  private Map<String, Object> listKeysWithValues(
-      RedisTemplate<String, String> redisTemplate,
-      int database,
-      String pattern,
-      int start,
-      int size) {
-    ScanOptions options = ScanOptions.scanOptions().match(pattern).count(size).build();
-    RedisConnection connection = redisTemplate.getConnectionFactory().getConnection();
-    try (Cursor<byte[]> cursor = connection.scan(options)) {
-      List<String> keys = new ArrayList<>();
-      cursor.forEachRemaining(key -> keys.add(new String(key)));
-
-      int end = Math.min(start + size, keys.size());
-
-      if (start >= keys.size()) {
-        return Collections.emptyMap();
-      }
-
-      List<String> pageKeys = keys.subList(start, end);
-      List<String> values = redisTemplate.opsForValue().multiGet(pageKeys);
-
-      return pageKeys.stream()
-          .collect(Collectors.toMap(key -> key, key -> values.get(pageKeys.indexOf(key))));
-    } catch (IOException e) {
-      log.error("Scan Redis keys of database {} error: ", database, e);
-    } finally {
-      connection.close();
-    }
-    return Collections.emptyMap();
-  }
-
-  /**
-   * 获取指定数据库的键数量
-   *
-   * @param database 数据库索引
-   * @return 键的数量
-   */
-  private long countKeys(RedisTemplate<String, String> redisTemplate, int database) {
-    try (RedisConnection connection = redisTemplate.getConnectionFactory().getConnection()) {
-      // 切换到指定的数据库
-      connection.select(database);
-      // 获取键的数量
-      return connection.dbSize();
-    }
-  }
-
-  /**
-   * 全量查询redis库下所有键值列表
-   *
-   * @param redisTemplate
-   * @param database
-   * @return java.util.Map<java.lang.String, java.lang.Object>
-   */
-  private Map<String, Object> listAllKeysWithValues(
-      RedisTemplate<String, String> redisTemplate, int database) {
-    Set<String> keys = redisTemplate.keys("*");
-    Map<String, Object> result = new LinkedHashMap<>();
-    if (keys != null) {
-      for (String key : keys) {
-        Object value = getValueByKey(redisTemplate, key);
-        result.put(key, value);
-      }
-    }
-    return result;
-  }
-
-  private Object getValueByKey(RedisTemplate<String, String> redisTemplate, String key) {
-    String type = redisTemplate.type(key).code();
-    switch (type) {
-      case "string":
-        return redisTemplate.opsForValue().get(key);
-      case "list":
-        return redisTemplate.opsForList().range(key, 0, -1);
-      case "set":
-        return redisTemplate.opsForSet().members(key);
-      case "zset":
-        return redisTemplate.opsForZSet().range(key, 0, -1);
-      case "hash":
-        return redisTemplate.opsForHash().entries(key);
-      default:
-        log.warn("The type of key {} is unknown", key);
-        return null;
-    }
-  }
-
   private Object getValueByKey(RedisConnection connection, byte[] key) {
-    String type = connection.type(key).name();
+    String type = connection.type(key).code();
     switch (type) {
       case "string":
         return new String(connection.get(key), StandardCharsets.UTF_8);
