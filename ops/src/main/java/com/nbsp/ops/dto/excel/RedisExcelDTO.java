@@ -1,0 +1,34 @@
+package com.nbsp.ops.dto.excel;
+
+import com.alibaba.excel.annotation.ExcelProperty;
+import java.io.Serializable;
+import lombok.Builder;
+import lombok.Data;
+
+/**
+ * @author charlesYan
+ * @description: Redis库信息实体类
+ * @date 2024年07月24日
+ */
+@Data
+@Builder
+public class RedisExcelDTO implements Serializable {
+
+  private static final long serialVersionUID = 5213628505480679486L;
+
+  /** 键 */
+  @ExcelProperty(value = "键", index = 0)
+  private String key;
+
+  /** 值 */
+  @ExcelProperty(value = "值", index = 1)
+  private String value;
+
+  /** 数据类型 */
+  @ExcelProperty(value = "数据类型", index = 2)
+  private String type;
+
+  /** 库号 */
+  @ExcelProperty(value = "库号", index = 3)
+  private String databaseIndex;
+}

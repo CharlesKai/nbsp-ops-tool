@@ -27,6 +27,7 @@
         <spring-data-redis.version>2.3.9.RELEASE</spring-data-redis.version>
         <lettuce-core.version>5.3.6.RELEASE</lettuce-core.version>
         <commons-pool2.version>2.7.0</commons-pool2.version>
+        <easyexcel.version>3.3.2</easyexcel.version>
     </properties>
     <dependencies>
         <dependency>
@@ -68,6 +69,11 @@
             <groupId>com.alibaba</groupId>
             <artifactId>fastjson</artifactId>
             <version>${fastjson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>easyexcel</artifactId>
+            <version>${easyexcel.version}</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/org.mybatis.spring.boot/mybatis-spring-boot-starter -->
         <dependency>

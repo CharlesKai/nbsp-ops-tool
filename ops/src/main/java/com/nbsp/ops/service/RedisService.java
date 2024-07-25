@@ -3,6 +3,7 @@ package com.nbsp.ops.service;
 import com.alibaba.fastjson.JSONObject;
 import com.nbsp.ops.config.redis.DynamicRedisConfig;
 import com.nbsp.ops.util.CommonUtil;
+import com.nbsp.ops.util.JsonUtil;
 import com.nbsp.ops.util.RedisUtil;
 import com.nbsp.ops.util.StringTools;
 import com.nbsp.ops.util.constants.ErrorEnum;
@@ -13,9 +14,9 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.collections4.CollectionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.connection.RedisConnection;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
@@ -42,7 +43,6 @@ public class RedisService {
    * @return com.alibaba.fastjson.JSONObject
    */
   public JSONObject listKeysWithValues(JSONObject jsonObject) {
-    CommonUtil.fillPageParam(jsonObject);
     int offSet = jsonObject.getIntValue("offSet");
     int limit = jsonObject.getIntValue("pageRow");
     String host = jsonObject.getString("host");
@@ -78,9 +78,10 @@ public class RedisService {
     return CommonUtil.successPage(jsonObject, list, Math.toIntExact(count));
   }
 
+  /** 分页查询redis库下键值列表 */
   private Map<String, Object> listKeysWithValues(
       RedisUtil redisUtil, String pattern, int start, int size) throws IOException {
-    // 待缓存连接池，是否需要destroy
+    // 待缓存连接池，是否需要destroy todo
     ScanOptions options = ScanOptions.scanOptions().match(pattern).count(size).build();
     List<String> keys = redisUtil.scanAndClose(options);
     int end = Math.min(start + size, keys.size());
@@ -97,6 +98,70 @@ public class RedisService {
   }
 
   /**
+   * 全量查询redis库下所有键值列表
+   *
+   * @param jsonObject
+   * @return java.util.Map<java.lang.String, java.lang.Object>
+   */
+  public JSONObject listAllKeysWithValues(JSONObject jsonObject) {
+    String host = jsonObject.getString("host");
+    int port = jsonObject.getIntValue("port");
+    String password = jsonObject.getString("password");
+    int database = jsonObject.getIntValue("database");
+    String keyword = jsonObject.getString("keyword");
+    String pattern = StringTools.isNullOrEmpty(keyword) ? "*" : keyword;
+
+    RedisTemplate<String, String> redisTemplate =
+        redisConfig.createRedisTemplate(host, port, password, database);
+    RedisUtil redisUtil = new RedisUtil(redisTemplate);
+    /** Set<String> keys = redisUtil.keys(pattern); */
+    ScanOptions options = ScanOptions.scanOptions().match(pattern).count(1000).build();
+    List<String> keys;
+    try {
+      keys = redisUtil.scanAndClose(options);
+    } catch (IOException e) {
+      log.error("Scan redis key of database {} with pattern {} error: ", database, pattern, e);
+      return CommonUtil.errorJson(ErrorEnum.E_400);
+    }
+    if (CollectionUtils.isEmpty(keys)) {
+      log.warn("Scan no redis key of database {} with pattern {}", database, pattern);
+      return CommonUtil.successJson(Collections.emptyList());
+    }
+    List<JSONObject> list =
+        keys.stream()
+            .map(
+                key ->
+                    JsonUtil.create()
+                        .put("key", key)
+                        .put("value", redisUtil.getValueByKey(key))
+                        .build())
+            .collect(Collectors.toList());
+    return CommonUtil.successJson(list);
+  }
+
+  /**
+   * 保存批量数据
+   *
+   * @param jsonObjects
+   * @return com.alibaba.fastjson.JSONObject
+   */
+  public JSONObject saveBatch(List<JSONObject> jsonObjects) {
+    // todo
+    return CommonUtil.successJson();
+  }
+
+  /**
+   * 保存单条数据
+   *
+   * @param jsonObject
+   * @return com.alibaba.fastjson.JSONObject
+   */
+  public JSONObject save(JSONObject jsonObject) {
+    // todo
+    return CommonUtil.successJson();
+  }
+
+  /**
    * 分页查询redis库下键值列表
    *
    * @param redisTemplate redis客户端
@@ -106,6 +171,7 @@ public class RedisService {
    * @param size 数量
    * @return java.util.Map<java.lang.String, java.lang.Object>
    */
+  @Deprecated
   private Map<String, Object> listKeysWithValues(
       RedisTemplate<String, String> redisTemplate,
       int database,
@@ -136,25 +202,6 @@ public class RedisService {
       connection.close();
     }
     return Collections.emptyMap();
-  }
-
-  /**
-   * 全量查询redis库下所有键值列表
-   *
-   * @param redisTemplate
-   * @return java.util.Map<java.lang.String, java.lang.Object>
-   */
-  private Map<String, Object> listAllKeysWithValues(RedisTemplate<String, String> redisTemplate) {
-    RedisUtil redisUtil = new RedisUtil(redisTemplate);
-    Set<String> keys = redisUtil.keys("*");
-    Map<String, Object> result = new LinkedHashMap<>();
-    if (keys != null) {
-      for (String key : keys) {
-        Object value = redisUtil.getValueByKey(key);
-        result.put(key, value);
-      }
-    }
-    return result;
   }
 
   /**
