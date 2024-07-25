@@ -6,11 +6,13 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import javax.servlet.ServletOutputStream;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.poi.util.IOUtils;
+import org.springframework.http.HttpHeaders;
 
 @Slf4j
 public class ExcelUtil {
@@ -29,9 +31,13 @@ public class ExcelUtil {
   public static void exportExcel(
       String fileName, String sheetName, List list, Class clazz, HttpServletResponse response)
       throws IOException {
+    // 替换空格（+）为 %20
+    String encodedFileName =
+        URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replace("+", "%20");
+    String disposition = "attachment; filename=" + encodedFileName + ExcelTypeEnum.XLSX.getValue();
     response.setContentType("application/vnd.ms-excel");
     response.setCharacterEncoding("utf8");
-    response.setHeader("Content-Disposition", "attachment; filename=" + fileName + ".xlsx");
+    response.setHeader(HttpHeaders.CONTENT_DISPOSITION, disposition);
     try (ServletOutputStream outputStream = response.getOutputStream()) {
       EasyExcel.write(outputStream)
           .head(clazz)

@@ -8,8 +8,9 @@ import com.nbsp.ops.service.RedisService;
 import com.nbsp.ops.util.CommonUtil;
 import com.nbsp.ops.util.ExcelUtil;
 import com.nbsp.ops.util.constants.Constants;
-import com.nbsp.ops.util.constants.ErrorEnum;
 import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletRequest;
@@ -48,19 +49,20 @@ public class RedisController {
   /** 导出数据列表 */
   @RequiresPermissions("redis:export")
   @GetMapping("/export")
-  public JSONObject exportKeyValue(
-      HttpServletResponse response, @RequestBody JSONObject requestJson) {
+  public void exportKeyValue(HttpServletResponse response, @RequestBody JSONObject requestJson) {
     CommonUtil.hasAllRequired(requestJson, "excelName");
     String excelName = requestJson.getString("excelName");
     log.info("查询入参：{}", requestJson);
     JSONObject result = redisService.listAllKeysWithValues(requestJson);
     String code = result.getString("code");
     if (!Constants.SUCCESS_CODE.equals(code)) {
-      return result;
+      log.error(result.toJSONString());
+      return;
     }
     JSONArray info = result.getJSONArray("info");
     if (info.isEmpty()) {
-      return CommonUtil.errorJson(ErrorEnum.E_40011);
+      log.warn("查询数据为空");
+      return;
     }
     List<JSONObject> list = info.toJavaList(JSONObject.class);
     // 转换数据
@@ -76,13 +78,15 @@ public class RedisController {
                         .databaseIndex(item.getString("database"))
                         .build())
             .collect(Collectors.toList());
+    String fileName =
+        String.format(
+            "%s_%s",
+            "消息明细", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss")));
     // 调用工具类导出
     try {
-      ExcelUtil.exportExcel("用户数据", "redis", excelList, RedisExcelDTO.class, response);
+      ExcelUtil.exportExcel(fileName, "redis", excelList, RedisExcelDTO.class, response);
     } catch (IOException e) {
       log.error("数据导出 {} 异常：", excelName, e);
-      return CommonUtil.errorJson(ErrorEnum.E_400);
     }
-    return CommonUtil.successJson();
   }
 }
