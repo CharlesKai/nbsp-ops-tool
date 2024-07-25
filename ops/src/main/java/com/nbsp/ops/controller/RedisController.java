@@ -65,7 +65,17 @@ public class RedisController {
     List<JSONObject> list = info.toJavaList(JSONObject.class);
     // 转换数据
     List<RedisExcelDTO> excelList =
-        list.stream().map(item -> RedisExcelDTO.builder().build()).collect(Collectors.toList());
+        list.stream()
+            .map(
+                item ->
+                    RedisExcelDTO.builder()
+                        .key(item.getString("key"))
+                        .value(item.getString("value"))
+                        .type(item.getString("type"))
+                        .host(item.getString("host"))
+                        .databaseIndex(item.getString("database"))
+                        .build())
+            .collect(Collectors.toList());
     // 调用工具类导出
     try {
       ExcelUtil.exportExcel("用户数据", "redis", excelList, RedisExcelDTO.class, response);

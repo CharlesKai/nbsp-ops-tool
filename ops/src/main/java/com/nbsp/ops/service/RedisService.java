@@ -133,7 +133,10 @@ public class RedisService {
                 key ->
                     JsonUtil.create()
                         .put("key", key)
+                        .put("type", redisUtil.type(key).code())
                         .put("value", redisUtil.getValueByKey(key))
+                        .put("database", database)
+                        .put("host", host)
                         .build())
             .collect(Collectors.toList());
     return CommonUtil.successJson(list);

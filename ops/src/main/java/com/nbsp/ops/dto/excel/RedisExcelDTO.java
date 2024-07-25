@@ -16,19 +16,22 @@ public class RedisExcelDTO implements Serializable {
 
   private static final long serialVersionUID = 5213628505480679486L;
 
+  @ExcelProperty(value = "主机", index = 0)
+  private String host;
+
   /** 键 */
-  @ExcelProperty(value = "键", index = 0)
+  @ExcelProperty(value = "键", index = 1)
   private String key;
 
   /** 值 */
-  @ExcelProperty(value = "值", index = 1)
+  @ExcelProperty(value = "值", index = 2)
   private String value;
 
   /** 数据类型 */
-  @ExcelProperty(value = "数据类型", index = 2)
+  @ExcelProperty(value = "数据类型", index = 3)
   private String type;
 
   /** 库号 */
-  @ExcelProperty(value = "库号", index = 3)
+  @ExcelProperty(value = "库号", index = 4)
   private String databaseIndex;
 }
