@@ -68,17 +68,21 @@
       layout="total, sizes, prev, pager, next, jumper" v-if="showPagination">
     </el-pagination>
     <el-dialog :title="textMap[dialogStatus]" :visible.sync="dialogFormVisible">
-      <el-form class="small-space" :model="tempArticle" label-position="left" label-width="60px"
+      <el-form class="small-space" :model="temp" label-position="left" label-width="60px"
                style='width: 500px; margin-left:50px;'>
-        <el-form-item label="文章">
-          <el-input type="textarea" style="width:100%" show-word-limit v-model="tempArticle.content"  maxlength="100">
+        <el-form-item label="键">
+          <el-input type="textarea" style="width:100%" show-word-limit v-model="temp.key"  maxlength="100">
+          </el-input>
+        </el-form-item>
+        <el-form-item label="值">
+          <el-input type="textarea" style="width:100%" show-word-limit v-model="temp.value"  maxlength="100">
           </el-input>
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取 消</el-button>
-        <el-button v-if="dialogStatus==='create'" type="success" @click="createArticle">创 建</el-button>
-        <el-button type="primary" v-else @click="updateArticle">修 改</el-button>
+        <el-button v-if="dialogStatus==='create'" type="success" @click="create">创 建</el-button>
+        <el-button type="primary" v-else @click="update">修 改</el-button>
       </div>
     </el-dialog>
   </div>
@@ -93,6 +97,7 @@
           user: '',
           password: '',
           database: '',
+          key: '',
           excelName: ''
         },
         totalCount: 0, //分页组件--数据总条数
@@ -100,7 +105,7 @@
         listLoading: false,//数据加载等待动画
         listQuery: {
           pageNum: 1,//页码
-          pageRow: 50,//每页条数
+          pageRow: 10,//每页条数
           name: ''
         },
         dialogStatus: 'create',
@@ -110,9 +115,9 @@
           update: '修改键值',
           create: '新增键值'
         },
-        tempArticle: {
-          id: "",
-          content: ""
+        temp: {
+          key: "",
+          value: ""
         }
       }
     },
@@ -128,7 +133,8 @@
         this.listLoading = true;
         this.api({
           url: "/redis/list",
-          method: "get",
+          method: "post",
+          data: this.formInline,
           params: this.listQuery
         }).then(data => {
           this.listLoading = false;
@@ -161,34 +167,35 @@
       },
       showCreate() {
         //显示新增对话框
-        this.tempArticle.content = "";
+        this.temp.key = "";
+        this.temp.value = "";
         this.dialogStatus = "create"
         this.dialogFormVisible = true
       },
       showUpdate($index) {
         //显示修改对话框
-        this.tempArticle.id = this.list[$index].id;
-        this.tempArticle.content = this.list[$index].content;
+        this.temp.key = this.list[$index].key;
+        this.temp.value = this.list[$index].value;
         this.dialogStatus = "update"
         this.dialogFormVisible = true
       },
-      createArticle() {
+      create() {
         //保存新文章
         this.api({
-          url: "/redis/addArticle",
+          url: "/redis/add",
           method: "post",
-          data: this.tempArticle
+          data: this.temp
         }).then(() => {
           this.getList();
           this.dialogFormVisible = false
         })
       },
-      updateArticle() {
+      update() {
         //修改文章
         this.api({
-          url: "/redis/updateArticle",
+          url: "/redis/update",
           method: "post",
-          data: this.tempArticle
+          data: this.temp
         }).then(() => {
           this.getList();
           this.dialogFormVisible = false

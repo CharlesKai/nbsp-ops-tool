@@ -72,6 +72,7 @@ public class RedisService {
                   JSONObject item = new JSONObject();
                   item.put("key", entry.getKey());
                   item.put("value", entry.getValue());
+                  item.put("type", redisUtil.type(entry.getKey()));
                   return item;
                 })
             .collect(Collectors.toList());
