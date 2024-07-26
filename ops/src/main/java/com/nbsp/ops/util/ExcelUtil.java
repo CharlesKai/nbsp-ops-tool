@@ -36,7 +36,7 @@ public class ExcelUtil {
         URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replace("+", "%20");
     String disposition = "attachment; filename=" + encodedFileName + ExcelTypeEnum.XLSX.getValue();
     response.setContentType("application/vnd.ms-excel");
-    response.setCharacterEncoding("utf8");
+    response.setCharacterEncoding(StandardCharsets.UTF_8.name());
     response.setHeader(HttpHeaders.CONTENT_DISPOSITION, disposition);
     try (ServletOutputStream outputStream = response.getOutputStream()) {
       EasyExcel.write(outputStream)

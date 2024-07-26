@@ -29,10 +29,17 @@ export const asyncRouterMap = [
   {
     path: '/system',
     component: Layout,
-    redirect: '/system/article',
+    redirect: '/system/redis',
     name: '功能模块',
     meta: {title: '功能模块', icon: 'tree'},
     children: [
+      {
+        path: 'redis',
+        name: '数据面板',
+        component: _import('panel/panel'),
+        meta: {title: '数据面板', icon: 'example'},
+        menu: 'redis'
+      },
       {
         path: 'article',
         name: '文章',
