@@ -59,7 +59,11 @@ public class RedisService {
     try {
       dataMap =
           listKeysWithValues(
-              redisUtil, StringTools.isNullOrEmpty(keyword) ? "*" : keyword, offSet, limit);
+              redisUtil,
+              database,
+              StringTools.isNullOrEmpty(keyword) ? "*" : keyword,
+              offSet,
+              limit);
     } catch (IOException e) {
       log.error("Scan redis key of database {} from {} to {} error: ", database, offSet, limit, e);
       return CommonUtil.errorJson(ErrorEnum.E_400);
@@ -81,7 +85,7 @@ public class RedisService {
 
   /** 分页查询redis库下键值列表 */
   private Map<String, Object> listKeysWithValues(
-      RedisUtil redisUtil, String pattern, int start, int size) throws IOException {
+      RedisUtil redisUtil, int database, String pattern, int start, int size) throws IOException {
     // 待缓存连接池，是否需要destroy todo
     ScanOptions options = ScanOptions.scanOptions().match(pattern).count(size).build();
     List<String> keys = redisUtil.scanAndClose(options);
@@ -93,9 +97,18 @@ public class RedisService {
         .collect(
             Collectors.toMap(
                 key -> key,
-                key -> redisUtil.getValueByKey(key),
+                key -> getValueByKey(redisUtil, database, key),
                 (existing, replacement) -> existing,
                 LinkedHashMap::new));
+  }
+
+  private Object getValueByKey(RedisUtil redisUtil, int database, String key) {
+    Object vaule = redisUtil.getValueByKey(key);
+    if (StringTools.isNullOrEmpty(vaule)) {
+      log.warn("Can't get value of the key {} from database {} ", key, database);
+      return "";
+    }
+    return vaule;
   }
 
   /**
@@ -135,7 +148,7 @@ public class RedisService {
                     JsonUtil.create()
                         .put("key", key)
                         .put("type", redisUtil.type(key).code())
-                        .put("value", redisUtil.getValueByKey(key))
+                        .put("value", getValueByKey(redisUtil, database, key))
                         .put("database", database)
                         .put("host", host)
                         .build())
