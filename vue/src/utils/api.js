@@ -19,9 +19,14 @@ service.interceptors.request.use(config => {
   console.error(error) // for debug
   Promise.reject(error)
 })
-// respone拦截器
+// response拦截器
 service.interceptors.response.use(
   response => {
+    // 检查 Content-Disposition 头
+    const disposition = response.headers['content-disposition'];
+    if (disposition && disposition.indexOf('attachment') !== -1) {
+      return response;
+    }
     const res = response.data;
     if (res.code === '200') {
       return res.info;

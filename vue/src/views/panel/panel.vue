@@ -42,7 +42,7 @@
         </el-form-item>
       </el-form>
     </div>
-    <el-table :data="list" v-loading="listLoading"  border fit
+    <el-table :data="list" v-loading="listLoading" v-if="showPagination" border fit
               highlight-current-row>
       <el-table-column align="center" label="序号" width="80">
         <template slot-scope="scope">
@@ -144,7 +144,32 @@
         })
       },
       exportData() {
-        console.log('exportData!');
+        function getFileNameFromHeader(disposition) {
+          const fileNameRegex = /filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/;
+          const matches = fileNameRegex.exec(disposition);
+          if (matches != null && matches[1]) {
+            return matches[1].replace(/['"]/g, ''); // 去掉引号
+          }
+          return '数据明细.xlsx';
+        }
+        this.api({
+          url: "/redis/export",
+          method: "post",
+          data: this.formInline,
+          responseType: 'blob' // 确保接收的是二进制流
+        }).then((res) => {
+            const blob = new Blob([res.data], {type: 'application/vnd.ms-excel'});
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = downloadUrl;
+            const fileName = decodeURIComponent(getFileNameFromHeader(res.headers['content-disposition']));
+            console.log(fileName)
+            link.download = fileName; // 下载文件的默认名称
+            document.body.appendChild(link);
+            link.click();
+            window.URL.revokeObjectURL(downloadUrl);
+            document.body.removeChild(link);
+          })
       },
       handleSizeChange(val) {
         //改变每页数量

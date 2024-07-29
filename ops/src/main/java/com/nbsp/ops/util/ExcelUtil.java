@@ -33,8 +33,10 @@ public class ExcelUtil {
       throws IOException {
     // 替换空格（+）为 %20
     String encodedFileName =
-        URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replace("+", "%20");
+        URLEncoder.encode(fileName, StandardCharsets.UTF_8.name()).replace("\\+", "%20");
+    // "attachment; filename*=utf-8''"+encodedFileName+ExcelTypeEnum.XLSX.getValue()
     String disposition = "attachment; filename=" + encodedFileName + ExcelTypeEnum.XLSX.getValue();
+    // application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
     response.setContentType("application/vnd.ms-excel");
     response.setCharacterEncoding(StandardCharsets.UTF_8.name());
     response.setHeader(HttpHeaders.CONTENT_DISPOSITION, disposition);

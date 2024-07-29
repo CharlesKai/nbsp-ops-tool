@@ -16,7 +16,6 @@ import java.util.stream.Collectors;
 import javax.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -48,10 +47,9 @@ public class RedisController {
 
   /** 导出数据列表 */
   @RequiresPermissions("redis:export")
-  @GetMapping("/export")
+  @PostMapping("/export")
   public void exportKeyValue(HttpServletResponse response, @RequestBody JSONObject requestJson) {
-    CommonUtil.hasAllRequired(requestJson, "excelName");
-    String excelName = requestJson.getString("excelName");
+    CommonUtil.hasAllRequired(requestJson, "host,port,password,database");
     log.info("查询入参：{}", requestJson);
     JSONObject result = redisService.listAllKeysWithValues(requestJson);
     String code = result.getString("code");
@@ -86,7 +84,8 @@ public class RedisController {
     try {
       ExcelUtil.exportExcel(fileName, "redis", excelList, RedisExcelDTO.class, response);
     } catch (IOException e) {
-      log.error("数据导出 {} 异常：", excelName, e);
+      log.error("数据导出 {} 异常：", fileName, e);
     }
+    log.info("附件{}导出成功", fileName);
   }
 }
