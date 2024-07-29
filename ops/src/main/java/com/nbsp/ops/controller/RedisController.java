@@ -86,6 +86,6 @@ public class RedisController {
     } catch (IOException e) {
       log.error("数据导出 {} 异常：", fileName, e);
     }
-    log.info("附件{}导出成功", fileName);
+    log.info("附件 {} 下载成功", fileName);
   }
 }

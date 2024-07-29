@@ -22,9 +22,9 @@ service.interceptors.request.use(config => {
 // response拦截器
 service.interceptors.response.use(
   response => {
-    // 检查 Content-Disposition 头
-    const disposition = response.headers['content-disposition'];
-    if (disposition && disposition.indexOf('attachment') !== -1) {
+    // 检查自定义配置头
+    const apiType = response.config.headers['apiType']
+    if (apiType && apiType === 'download') {
       return response;
     }
     const res = response.data;

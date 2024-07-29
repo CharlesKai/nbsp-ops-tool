@@ -156,14 +156,16 @@
           url: "/redis/export",
           method: "post",
           data: this.formInline,
-          responseType: 'blob' // 确保接收的是二进制流
+          responseType: 'blob', // 确保接收的是二进制流
+          headers: {
+            apiType: 'download'
+          }
         }).then((res) => {
             const blob = new Blob([res.data], {type: 'application/vnd.ms-excel'});
             const downloadUrl = window.URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.href = downloadUrl;
             const fileName = decodeURIComponent(getFileNameFromHeader(res.headers['content-disposition']));
-            console.log(fileName)
             link.download = fileName; // 下载文件的默认名称
             document.body.appendChild(link);
             link.click();
