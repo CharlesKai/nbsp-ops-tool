@@ -14,6 +14,10 @@
  Date: 08/05/2021 23:30:58
 */
 
+
+create database nbsp_ops_tool;
+use nbsp_ops_tool;
+
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -69,6 +73,9 @@ INSERT INTO `sys_permission` VALUES (701, 'role', '角色权限', 'role:list', '
 INSERT INTO `sys_permission` VALUES (702, 'role', '角色权限', 'role:add', '新增', 2);
 INSERT INTO `sys_permission` VALUES (703, 'role', '角色权限', 'role:update', '修改', 2);
 INSERT INTO `sys_permission` VALUES (704, 'role', '角色权限', 'role:delete', '删除', 2);
+INSERT INTO `sys_permission` VALUES (801, 'redis', '运维管理', 'redis:list', '列表', 1);
+INSERT INTO `sys_permission` VALUES (802, 'redis', '运维管理', 'redis:export', '导出', 2);
+INSERT INTO `sys_permission` VALUES (803, 'redis', '运维管理', 'redis:update', '修改', 2);
 COMMIT;
 
 -- ----------------------------
